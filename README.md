@@ -244,4 +244,4 @@ See `backend/.env.example`, `frontend/.env.example`, and `ai-service/.env.exampl
 
 ## License
 
-Proprietary — Shule360 Development Team © 2026
+Proprietary — PentaFlow Labs Team © 2026
