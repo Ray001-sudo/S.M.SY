@@ -1,0 +1,11 @@
+const express = require('express');
+const router  = express.Router();
+const kj = require('../controllers/kjsea.controller');
+const { authenticate, authorise, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.get('/kjsea/:student_id', uuidParam('student_id'), guardianOwns('student_id'), kj.getScore);
+router.post('/kjsea', staffOnly, authorise('admin','principal','deputy_principal','teacher'), kj.upsertScore);
+router.post('/kjsea/:student_id/choose', staffOnly, authorise('admin','principal','counsellor'), kj.choosePathway);
+router.get('/kjsea/summary', staffOnly, authorise('admin','principal'), kj.getSchoolKJSEASummary);
+module.exports = router;

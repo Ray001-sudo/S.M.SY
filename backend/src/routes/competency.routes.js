@@ -1,0 +1,10 @@
+const express = require('express');
+const router  = express.Router();
+const cc = require('../controllers/competency.controller');
+const { authenticate, authorise, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.post('/', staffOnly, authorise('teacher','class_teacher','deputy_principal','admin','principal'), cc.rateCompetency);
+router.get('/student/:student_id', uuidParam('student_id'), guardianOwns('student_id'), cc.getStudentCompetencies);
+router.get('/class-summary', staffOnly, authorise('admin','principal','deputy_principal'), cc.getClassCompetencySummary);
+module.exports = router;

@@ -1,0 +1,13 @@
+const express = require('express');
+const router  = express.Router();
+const c = require('../controllers/student.controller');
+const { authenticate, authorise, schoolScope, staffOnly } = require('../middleware/auth');
+const { createStudentValidators, updateStudentValidators, paginationGuard, uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.get('/',              staffOnly, paginationGuard, c.getAll);
+router.get('/stats',         staffOnly, c.getStats);
+router.get('/:id',           uuidParam('id'), c.getOne);
+router.post('/',             staffOnly, authorise('admin','principal','deputy_principal'), createStudentValidators, c.create);
+router.put('/:id',           staffOnly, authorise('admin','principal','deputy_principal'), updateStudentValidators, c.update);
+router.post('/bulk-import',  staffOnly, authorise('admin','principal'), c.bulkImport);
+module.exports = router;

@@ -1,0 +1,12 @@
+const express = require('express');
+const router  = express.Router();
+const pc = require('../controllers/portfolio.controller');
+const { authenticate, authorise, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.get('/student/:student_id', uuidParam('student_id'), guardianOwns('student_id'), pc.getStudentPortfolio);
+router.get('/student/:student_id/competency-profile', uuidParam('student_id'), guardianOwns('student_id'), pc.getCompetencyProfile);
+router.post('/', staffOnly, pc.addPortfolioItem);
+router.put('/:id/review', staffOnly, authorise('teacher','class_teacher','deputy_principal','principal','admin'), pc.reviewPortfolioItem);
+router.get('/pending-reviews', staffOnly, pc.getPendingReviews);
+module.exports = router;

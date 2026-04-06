@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+*.log
+models/*.joblib
+coverage/
+.nyc_output/

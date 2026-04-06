@@ -1,0 +1,11 @@
+const express = require('express');
+const router  = express.Router();
+const aic = require('../controllers/ai.controller');
+const { authenticate, authorise, schoolScope, staffOnly } = require('../middleware/auth');
+const { uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope, staffOnly);
+router.get('/risk/dashboard', authorise('admin','principal','deputy_principal','counsellor'), aic.getSchoolRiskDashboard);
+router.get('/risk/student/:student_id', uuidParam('student_id'), aic.getStudentRiskScore);
+router.post('/risk/student/:student_id/compute', uuidParam('student_id'), authorise('admin','principal'), aic.triggerRiskCompute);
+router.get('/pathway-fit/:student_id', uuidParam('student_id'), authorise('admin','principal','deputy_principal','counsellor'), aic.getPathwayFitReport);
+module.exports = router;

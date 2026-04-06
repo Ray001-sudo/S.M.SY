@@ -1,0 +1,12 @@
+const express = require('express');
+const router  = express.Router();
+const gc = require('../controllers/grade.controller');
+const { authenticate, authorise, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { gradeValidators, uuidParam, paginationGuard } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.post('/',    staffOnly, gradeValidators, gc.recordGrade);
+router.post('/bulk',staffOnly, gc.bulkRecord);
+router.get('/student/:student_id', uuidParam('student_id'), guardianOwns('student_id'), gc.getStudentGrades);
+router.get('/class-performance', staffOnly, paginationGuard, gc.getClassPerformance);
+router.get('/subject-summary',   staffOnly, gc.getSubjectSummary);
+module.exports = router;

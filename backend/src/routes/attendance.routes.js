@@ -1,0 +1,12 @@
+const express = require('express');
+const router  = express.Router();
+const ac = require('../controllers/attendance.controller');
+const { authenticate, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { uuidParam, paginationGuard, validate } = require('../middleware/validate');
+const { body } = require('express-validator');
+router.use(authenticate, schoolScope);
+const markV = validate([body('records').isArray({ min:1 }).withMessage('Records required'), body('records.*.student_id').isUUID(), body('records.*.status').isIn(['present','absent','late','excused']), body('subject_id').isUUID(), body('period').isInt({ min:1, max:10 }), body('term').isInt({ min:1, max:3 }), body('academic_year').isInt({ min:2020, max:2030 })]);
+router.post('/', staffOnly, markV, ac.markAttendance);
+router.get('/student/:student_id', uuidParam('student_id'), guardianOwns('student_id'), ac.getStudentAttendance);
+router.get('/class-summary', staffOnly, paginationGuard, ac.getClassAttendanceSummary);
+module.exports = router;

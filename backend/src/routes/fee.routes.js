@@ -1,0 +1,13 @@
+const express = require('express');
+const router  = express.Router();
+const fc = require('../controllers/fee.controller');
+const { authenticate, authorise, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { feeStructureValidators, uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.get('/structures', staffOnly, fc.getFeeStructures);
+router.post('/structures', authorise('admin','principal','bursar'), feeStructureValidators, fc.createFeeStructure);
+router.post('/generate-invoices', authorise('admin','principal','bursar'), fc.generateInvoices);
+router.get('/invoice/:student_id', uuidParam('student_id'), guardianOwns('student_id'), fc.getStudentInvoice);
+router.post('/payment', authorise('admin','bursar'), fc.recordManualPayment);
+router.get('/dashboard', authorise('admin','principal','bursar'), fc.getBursarDashboard);
+module.exports = router;

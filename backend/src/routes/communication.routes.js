@@ -1,0 +1,16 @@
+const express = require('express');
+const router  = express.Router();
+const cc = require('../controllers/communication.controller');
+const { authenticate, authorise, schoolScope, staffOnly } = require('../middleware/auth');
+const { noticeValidators, uuidParam, paginationGuard, validate } = require('../middleware/validate');
+const { body } = require('express-validator');
+router.use(authenticate, schoolScope);
+router.get('/notices', paginationGuard, cc.getNotices);
+router.post('/notices', staffOnly, authorise('admin','principal','deputy_principal','teacher'), noticeValidators, cc.createNotice);
+router.post('/notices/:id/read', uuidParam('id'), cc.markNoticeRead);
+router.post('/messages', validate([body('body').trim().notEmpty().isLength({ max:2000 }), body('recipient_id').isUUID()]), cc.sendMessage);
+router.get('/messages/student/:student_id', uuidParam('student_id'), cc.getConversation);
+router.get('/consent-forms', cc.getConsentForms);
+router.post('/consent-forms', staffOnly, authorise('admin','principal'), validate([body('title').trim().notEmpty().isLength({ max:255 }), body('description').trim().notEmpty().isLength({ max:2000 })]), cc.createConsentForm);
+router.post('/consent-forms/:id/sign', uuidParam('id'), cc.signConsentForm);
+module.exports = router;

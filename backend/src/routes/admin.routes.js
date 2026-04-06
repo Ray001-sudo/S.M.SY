@@ -1,0 +1,14 @@
+const express = require('express');
+const router  = express.Router();
+const ac = require('../controllers/admin.controller');
+const { authenticate, authorise, schoolScope, staffOnly } = require('../middleware/auth');
+router.use(authenticate, schoolScope, staffOnly);
+router.get('/school', ac.getSchool);
+router.put('/school', authorise('admin','principal'), ac.updateSchool);
+router.get('/subjects', ac.getSubjects);
+router.post('/subjects', authorise('admin','principal'), ac.createSubject);
+router.get('/streams', ac.getStreams);
+router.post('/streams', authorise('admin','principal'), ac.createStream);
+router.get('/pathways', ac.getPathways);
+router.post('/pathways', authorise('admin','principal'), ac.createPathway);
+module.exports = router;

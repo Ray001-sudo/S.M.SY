@@ -1,0 +1,11 @@
+const express = require('express');
+const router  = express.Router();
+const auth    = require('../controllers/auth.controller');
+const { authenticate, schoolScope } = require('../middleware/auth');
+const { loginValidators, signupValidators, changePasswordValidators } = require('../middleware/validate');
+router.post('/login',          loginValidators,          auth.login);
+router.post('/signup',         signupValidators,          auth.signup);
+router.post('/refresh',                                    auth.refresh);
+router.post('/logout',         authenticate,              auth.logout);
+router.put('/change-password', authenticate, schoolScope, changePasswordValidators, auth.changePassword);
+module.exports = router;

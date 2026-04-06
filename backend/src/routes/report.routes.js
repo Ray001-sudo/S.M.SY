@@ -1,0 +1,10 @@
+const express = require('express');
+const router  = express.Router();
+const rc = require('../controllers/report.controller');
+const { authenticate, authorise, schoolScope, staffOnly, guardianOwns } = require('../middleware/auth');
+const { uuidParam } = require('../middleware/validate');
+router.use(authenticate, schoolScope);
+router.get('/report-card/:student_id', uuidParam('student_id'), guardianOwns('student_id'), rc.generateReportCard);
+router.get('/school-performance', staffOnly, authorise('admin','principal','deputy_principal'), rc.schoolPerformance);
+router.get('/fee-statement/:student_id', uuidParam('student_id'), guardianOwns('student_id'), rc.feeStatement);
+module.exports = router;
