@@ -1,154 +1,307 @@
-# Shule360 v2.0 — Dual-Curriculum School Management Platform
+# Shule360 v2.0
 
-> **Supports 8-4-4 (Forms 1–4 / KCSE) AND CBC/CBE (Grades 7–12 / KJSEA / Pathways) simultaneously.**
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Python](https://img.shields.io/badge/Python-3.11-3670A0?style=flat-square&logo=python&logoColor=ffdd54)](https://python.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)]()
 
----
-
-## What is Shule360?
-
-Shule360 is a full-stack, AI-powered school management platform built specifically for Kenyan boarding high schools. It is the only platform that handles both the 8-4-4 and CBC/CBE curricula in a single system — automatically detecting each student's curriculum mode and presenting the correct tools without any manual configuration.
-
----
-
-## Modules
-
-| Module | Description |
-|---|---|
-| **Student Profiles** | Dual-curriculum student records, guardian contacts, boarding allocation, bursary tracking |
-| **Academics & Grades** | 8-4-4 gradebook (A–E) + CBE competency ratings (EE/ME/AE/BE), attendance per period |
-| **Exams & SBA** | Question bank, CAT generation (8-4-4), SBA management + KJSEA composite calculator (CBE) |
-| **Digital Portfolio** | CBE-only evidence collection, teacher review workflow, parent visibility |
-| **Pathways** | KJSEA scoring, AI pathway-fit recommendation, senior school enrolment (STEM / Social Sciences / Arts & Sports) |
-| **Fees & Finance** | M-Pesa STK Push + C2B Paybill, auto-invoicing, bursar dashboard, automated SMS receipts |
-| **Communication** | Official notice board, parent-teacher messaging, digital consent forms, event calendar |
-| **AI Insights** | Weekly at-risk student prediction (both curricula) + KCSE grade projection (8-4-4) + pathway-fit AI (CBE Grade 9) |
+> Dual-curriculum school management platform for Kenyan boarding high schools — the only system that handles 8-4-4 and CBC/CBE simultaneously in a single deployment.
 
 ---
 
-## Tech Stack
+## Table of Contents
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 14, React, TailwindCSS, TanStack Query, Zustand |
-| Backend | Node.js 20, Express.js, Knex |
-| Database | PostgreSQL 16 with Row-Level Security |
-| Cache | Redis 7 |
-| AI Service | Python 3.11, FastAPI, scikit-learn, SHAP |
-| Payments | Safaricom Daraja API v3 (STK Push + C2B) |
-| SMS | Africa's Talking API |
-| File Storage | AWS S3 + CloudFront |
+1. [What This System Does](#1-what-this-system-does)
+2. [Architecture](#2-architecture)
+3. [Curriculum Auto-Detection](#3-curriculum-auto-detection)
+4. [Module Reference](#4-module-reference)
+5. [User Roles & Permissions](#5-user-roles--permissions)
+6. [Tech Stack](#6-tech-stack)
+7. [Prerequisites](#7-prerequisites)
+8. [Local Development Setup](#8-local-development-setup)
+9. [Third-Party Integrations](#9-third-party-integrations)
+10. [Project Structure](#10-project-structure)
+11. [Environment Variables](#11-environment-variables)
+12. [Production Deployment](#12-production-deployment)
+13. [License](#13-license)
 
 ---
 
-## Quick Start (Docker)
+## 1. What This System Does
+
+Kenya's education system is mid-transition. Schools currently carry two student cohorts under two entirely different curricula — the legacy 8-4-4 system (Forms 1–4, KCSE examinations, A–E grading) and the new CBC/CBE system (Grades 7–12, KJSEA assessment, competency-based ratings). Every other platform on the market handles one or the other. Shule360 handles both, in the same system, for the same school, at the same time.
+
+The platform detects each student's curriculum from their admission record and automatically presents the correct grading tools, assessment types, report card format, and AI model. Teachers see what they need for each student without configuration. Administrators get a unified view across both cohorts. Parents see their child's progress in the format that applies to them.
+
+Beyond curriculum management, Shule360 is a complete school operations platform: M-Pesa fee collection with automated receipts, AI-driven at-risk student prediction, CBE digital portfolio management, KJSEA pathway-fit recommendations, and a parent communication layer — all built specifically for the operational reality of Kenyan boarding schools.
+
+---
+
+## 2. Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                            CLIENT LAYER                               │
+│                                                                       │
+│   Next.js 14 Frontend (App Router)                                   │
+│   TanStack Query · Zustand · TailwindCSS                             │
+│   Curriculum-aware UI — renders 8-4-4 or CBE components per student │
+└───────────────────────────┬──────────────────────────────────────────┘
+                            │  REST API  /api/v1
+┌───────────────────────────▼──────────────────────────────────────────┐
+│                          API LAYER                                    │
+│                                                                       │
+│   Node.js 20 + Express.js                                            │
+│   JWT + RBAC middleware                                               │
+│   Curriculum detector middleware (auto 8-4-4 / CBE routing)         │
+│   M-Pesa STK Push + C2B · Africa's Talking SMS                      │
+└──────────────┬────────────────────────────┬──────────────────────────┘
+               │                            │  HTTP  /predict
+┌──────────────▼──────────┐    ┌────────────▼────────────────────────┐
+│      DATA LAYER          │    │           AI SERVICE                 │
+│                          │    │                                      │
+│  PostgreSQL 16           │    │  Python 3.11 + FastAPI              │
+│  Row-Level Security      │    │  scikit-learn + SHAP                │
+│  Redis 7 (cache +        │    │  At-risk prediction (both curricula)│
+│  session + rate limit)   │    │  KCSE grade projection (8-4-4)      │
+│  AWS S3 + CloudFront     │    │  Pathway-fit scoring (CBE Grade 9)  │
+│  (portfolio files)       │    │  Weekly batch scheduler             │
+└──────────────────────────┘    └─────────────────────────────────────┘
+```
+
+---
+
+## 3. Curriculum Auto-Detection
+
+Shule360 determines each student's curriculum from their admission record and routes all downstream behaviour accordingly. No manual configuration is required after initial student registration.
+
+| Admission Profile | Curriculum | Assessment Model | Grading | Report Card Format |
+|-------------------|-----------|-----------------|---------|-------------------|
+| Admitted ≤ Form 1 in 2023 | 8-4-4 | CATs + End of Term exams | A, B, C, D, E | Class position + KCSE projection |
+| Admitted Grade 7 in 2024+ | CBC / CBE | SBA + Projects + Portfolio | EE / ME / AE / BE | Competency profile + pathway-fit score |
+
+The `curriculum_mode` field on each student record drives:
+- which grade entry form a teacher sees
+- which report card template is generated
+- which AI model is invoked for risk prediction
+- whether the portfolio module is visible
+- whether KJSEA pathway tools are accessible
+
+All routing is handled in `middleware/curriculumDetector.js`. No conditional logic is scattered through controllers.
+
+---
+
+## 4. Module Reference
+
+### Student Management
+Full dual-curriculum student records including guardian contacts, boarding house allocation, bursary tracking, and academic history. Curriculum mode is set on admission and propagates automatically.
+
+### Academics and Grading
+- **8-4-4:** Subject gradebook with A–E letter grades, class position ranking, end-of-term aggregates, KCSE subject entry tracking
+- **CBE:** Competency ratings (Exceeds Expectation / Meets Expectation / Approaches Expectation / Below Expectation) per strand, attendance tracking per period
+
+### Examinations and SBA
+- **8-4-4:** Question bank, CAT paper generation, invigilator assignment, mark entry, grade computation
+- **CBE:** SBA task management, teacher assessment workflow, KJSEA composite score calculator across all strands
+
+### Digital Portfolio (CBE only)
+Evidence collection and management for CBC portfolio requirements. Teachers review and approve submissions. Parents have read-only visibility into their child's portfolio. Files stored on AWS S3 with CloudFront delivery.
+
+### Pathways (CBE Grade 9+)
+KJSEA score aggregation and AI-powered pathway-fit recommendation across STEM, Social Sciences, and Arts & Sports tracks. Senior school enrolment management once pathway is confirmed.
+
+### Fees and Finance
+- M-Pesa STK Push for parent-initiated payments
+- C2B Paybill for bulk payments and bank deposits
+- Auto-invoicing per term with fee structure templates
+- Bursar dashboard with outstanding balance tracking
+- Automated SMS receipts via Africa's Talking on payment confirmation
+- Bursary and scholarship tracking per student
+
+### Communication
+- Official notice board with role-targeted visibility
+- Parent-teacher direct messaging
+- Digital consent forms with electronic acknowledgement tracking
+- School event calendar with parent notifications
+
+### AI Insights
+- **At-risk prediction:** Weekly batch job scores all students in both curricula on likelihood of academic failure. Features include attendance trends, grade trajectory, fee payment history, and co-curricular participation. SHAP values provide per-student explainability so counsellors understand why a student was flagged.
+- **KCSE grade projection (8-4-4):** Subject-level predicted grades based on CAT performance, attendance, and historical cohort data.
+- **Pathway-fit recommendation (CBE Grade 9):** Competency profile matching against pathway requirements, surfaced to counsellors and students during KJSEA preparation.
+
+---
+
+## 5. User Roles and Permissions
+
+Access control is enforced via JWT claims and RBAC middleware on every API route. Roles are not hierarchical — each has an explicit permission set.
+
+| Role | Access Scope |
+|------|-------------|
+| Principal / Admin | Full system access including school settings, user management, and all reports |
+| Deputy Principal | Academics, attendance, examinations, AI risk dashboard |
+| Teacher | Grade entry and attendance for own assigned subjects only |
+| Class Teacher | All of the above, plus full profiles for all students in assigned class |
+| Bursar | Fee module only — no access to academic or communication modules |
+| Counsellor | Student profiles, AI risk dashboard, pathway guidance tools |
+| Parent / Guardian | Own child only — grades, fee balance, portfolio (read-only), school notices |
+
+---
+
+## 6. Tech Stack
+
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| Frontend framework | Next.js | 14 | App Router, SSR, API routes |
+| UI | React + TailwindCSS | 18 / 3.x | Component library and styling |
+| State management | Zustand + TanStack Query | latest | Auth state + server data caching |
+| API server | Node.js + Express.js | 20 / 4.x | REST API, middleware, business logic |
+| Query builder | Knex.js | latest | SQL query building and migrations |
+| Database | PostgreSQL | 16 | Primary data store with RLS |
+| Cache and sessions | Redis | 7 | Session storage, rate limiting, caching |
+| AI service | Python + FastAPI | 3.11 | ML inference, batch prediction jobs |
+| ML framework | scikit-learn + SHAP | latest | Prediction models + explainability |
+| Payments | Safaricom Daraja API | v3 | M-Pesa STK Push and C2B Paybill |
+| SMS | Africa's Talking | latest | Fee receipts and school notifications |
+| File storage | AWS S3 + CloudFront | — | Portfolio files and documents |
+
+---
+
+## 7. Prerequisites
+
+**All setups:**
+```bash
+node --version       # Required: v20.x
+docker --version     # Required: 24.0+  (Docker setup only)
+docker compose version  # Required: v2.20+  (Docker setup only)
+```
+
+**Manual setup (additional):**
+```bash
+psql --version       # Required: PostgreSQL 16
+redis-server --version  # Required: Redis 7
+python3 --version    # Required: 3.11.x
+```
+
+---
+
+## 8. Local Development Setup
+
+### Option A — Docker (recommended)
+
+The fastest path to a running system. All services start in the correct order with health checks.
 
 ```bash
-# 1. Clone and enter the project
+# Step 1 — Clone
+git clone https://github.com/Ray001-sudo/shule360.git
 cd shule360
 
-# 2. Copy environment files
+# Step 2 — Configure environment files
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 cp ai-service/.env.example ai-service/.env
+# Edit backend/.env — add M-Pesa keys, SMS key, JWT secret, DB credentials
 
-# 3. Edit backend/.env — add your M-Pesa keys, SMS key, etc.
-
-# 4. Start everything
+# Step 3 — Start all services
 docker compose up -d
 
-# 5. Run database migrations
+# Step 4 — Run database migrations
 docker compose exec backend node src/config/migrate.js
 
-# 6. Open the app
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:5000
+# Step 5 — Access the application
+# Frontend:   http://localhost:3000
+# API:        http://localhost:5000
 # AI Service: http://localhost:8000
 ```
 
----
+### Option B — Manual Setup
 
-## Manual Setup (No Docker)
+Use this if you prefer to run services directly on your machine.
 
-### Prerequisites
-- Node.js 20+
-- PostgreSQL 16
-- Redis 7
-- Python 3.11+
-
-### Backend
-
+**Backend:**
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your database credentials
 npm install
-node src/config/migrate.js   # Create all tables
-npm run dev                  # Start on port 5000
+node src/config/migrate.js
+npm run dev
+# API running at http://localhost:5000
 ```
 
-### Frontend
-
+**Frontend:**
 ```bash
 cd frontend
 cp .env.example .env
 npm install
-npm run dev                  # Start on port 3000
+npm run dev
+# Dashboard running at http://localhost:3000
 ```
 
-### AI Service
-
+**AI Service:**
 ```bash
 cd ai-service
 cp .env.example .env
-python -m venv venv
-source venv/bin/activate     # Windows: venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
+# AI service running at http://localhost:8000
 ```
 
 ---
 
-## M-Pesa Setup
+## 9. Third-Party Integrations
+
+### M-Pesa (Safaricom Daraja API v3)
 
 1. Register at [developer.safaricom.co.ke](https://developer.safaricom.co.ke)
-2. Create an app and get your Consumer Key + Consumer Secret
-3. Add your Paybill number and Passkey to `backend/.env`
+2. Create an app — copy the Consumer Key and Consumer Secret
+3. Add your Paybill shortcode and Lipa Na M-Pesa Passkey to `backend/.env`
 4. Set `MPESA_ENVIRONMENT=sandbox` for testing, `production` for live
-5. Configure your callback URL (must be publicly accessible — use ngrok for local dev)
+5. The M-Pesa callback URL must be publicly reachable. For local development, use ngrok:
 
 ```bash
-# For local testing with ngrok
 ngrok http 5000
-# Then set MPESA_CALLBACK_URL=https://your-ngrok-url.ngrok.io/api/v1/payments/mpesa/callback
+# Copy the HTTPS URL and set:
+# MPESA_CALLBACK_URL=https://your-ngrok-url.ngrok.io/api/v1/payments/mpesa/callback
 ```
 
----
-
-## Africa's Talking SMS Setup
+### Africa's Talking SMS
 
 1. Register at [africastalking.com](https://africastalking.com)
-2. Get your API key (use `sandbox` username for testing)
+2. Copy your API key. Use username `sandbox` for testing
 3. Add to `backend/.env`:
-   ```
-   AT_API_KEY=your_key
-   AT_USERNAME=sandbox
-   AT_SENDER_ID=SHULE360
-   ```
+
+```
+AT_API_KEY=your_api_key
+AT_USERNAME=sandbox
+AT_SENDER_ID=SHULE360
+```
+
+### AWS S3 (Portfolio File Storage)
+
+1. Create an S3 bucket in your preferred region
+2. Create a CloudFront distribution pointing to the bucket
+3. Create an IAM user with `s3:PutObject` and `s3:GetObject` on the bucket
+4. Add the access key, secret, bucket name, and CloudFront domain to `backend/.env`
 
 ---
 
-## Project Structure
+## 10. Project Structure
 
 ```
 shule360/
 ├── backend/
 │   ├── src/
-│   │   ├── server.js              # Express app entry point
+│   │   ├── server.js                    # Express app entry point
 │   │   ├── config/
-│   │   │   ├── database.js        # Knex PostgreSQL config
-│   │   │   ├── redis.js           # Redis client
-│   │   │   └── migrate.js         # Full database migration
-│   │   ├── controllers/           # All business logic
+│   │   │   ├── database.js              # Knex PostgreSQL configuration
+│   │   │   ├── redis.js                 # Redis client
+│   │   │   └── migrate.js               # Database migration runner
+│   │   ├── middleware/
+│   │   │   ├── auth.js                  # JWT validation + RBAC enforcement
+│   │   │   └── curriculumDetector.js    # Auto 8-4-4 / CBE routing
+│   │   ├── controllers/
 │   │   │   ├── auth.controller.js
 │   │   │   ├── student.controller.js
 │   │   │   ├── grade.controller.js
@@ -158,49 +311,50 @@ shule360/
 │   │   │   ├── kjsea.controller.js
 │   │   │   ├── communication.controller.js
 │   │   │   └── ai.controller.js
-│   │   ├── routes/                # Express routers
-│   │   ├── middleware/
-│   │   │   ├── auth.js            # JWT + RBAC
-│   │   │   └── curriculumDetector.js  # Auto 8-4-4/CBE detection
+│   │   ├── routes/                      # Express routers (one per domain)
 │   │   ├── services/
-│   │   │   ├── mpesa.service.js   # Daraja STK Push + C2B
-│   │   │   └── sms.service.js     # Africa's Talking
-│   │   └── utils/logger.js
+│   │   │   ├── mpesa.service.js         # Daraja STK Push + C2B
+│   │   │   └── sms.service.js           # Africa's Talking
+│   │   └── utils/
+│   │       └── logger.js
 │   └── Dockerfile
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                   # Next.js App Router pages
-│   │   │   ├── auth/login/        # Login page
-│   │   │   ├── dashboard/         # Main dashboard
-│   │   │   ├── students/          # Student management
-│   │   │   ├── grades/            # Dual-curriculum grade entry
-│   │   │   ├── exams/             # Exams & SBA
-│   │   │   ├── fees/              # Fee management + M-Pesa
-│   │   │   ├── communication/     # Notices, messages, consent
-│   │   │   ├── portfolio/         # CBE digital portfolios
-│   │   │   ├── pathways/          # KJSEA + pathway management
-│   │   │   ├── ai/                # AI risk + pathway dashboard
-│   │   │   ├── reports/           # Analytics & reports
-│   │   │   └── admin/             # School settings
+│   │   ├── app/                         # Next.js App Router
+│   │   │   ├── auth/login/
+│   │   │   ├── dashboard/
+│   │   │   ├── students/
+│   │   │   ├── grades/                  # Dual-curriculum grade entry
+│   │   │   ├── exams/                   # CATs (8-4-4) + SBA (CBE)
+│   │   │   ├── fees/                    # Fee management + M-Pesa
+│   │   │   ├── communication/
+│   │   │   ├── portfolio/               # CBE digital portfolios
+│   │   │   ├── pathways/                # KJSEA + pathway management
+│   │   │   ├── ai/                      # AI risk + pathway dashboard
+│   │   │   ├── reports/
+│   │   │   └── admin/                   # School settings
 │   │   ├── components/
-│   │   │   └── layout/Sidebar.tsx # Navigation sidebar
-│   │   ├── store/auth.store.ts    # Zustand auth state
-│   │   ├── lib/
-│   │   │   ├── api.ts             # Axios client + auto-refresh
-│   │   │   └── utils.ts           # Grade helpers, formatters
-│   │   └── app/globals.css        # Tailwind + custom classes
+│   │   │   └── layout/Sidebar.tsx
+│   │   ├── store/
+│   │   │   └── auth.store.ts            # Zustand auth state
+│   │   └── lib/
+│   │       ├── api.ts                   # Axios client + token auto-refresh
+│   │       └── utils.ts                 # Grade helpers, formatters
 │   └── Dockerfile
 │
 ├── ai-service/
-│   ├── main.py                    # FastAPI app
+│   ├── main.py                          # FastAPI application
 │   ├── src/
-│   │   ├── features/extractor.py  # Feature engineering (8-4-4 + CBE)
-│   │   ├── models/predictors.py   # Risk + pathway fit models
+│   │   ├── features/
+│   │   │   └── extractor.py             # Feature engineering (8-4-4 + CBE)
+│   │   ├── models/
+│   │   │   └── predictors.py            # Risk + pathway-fit models
 │   │   ├── api/
-│   │   │   ├── predict.py         # /predict/risk + /predict/pathway
-│   │   │   └── batch.py           # /batch/risk (weekly job)
-│   │   └── scheduler/jobs.py      # Weekly cron scheduler
+│   │   │   ├── predict.py               # POST /predict/risk, /predict/pathway
+│   │   │   └── batch.py                 # POST /batch/risk (weekly job)
+│   │   └── scheduler/
+│   │       └── jobs.py                  # Weekly cron scheduler
 │   ├── requirements.txt
 │   └── Dockerfile
 │
@@ -209,39 +363,102 @@ shule360/
 
 ---
 
-## Curriculum Mode Auto-Detection
+## 11. Environment Variables
 
-Shule360 automatically determines which curriculum to apply per student:
+Each service has its own `.env.example`. The tables below document every variable.
 
-| Student Intake | Curriculum Mode | Assessment Type | Report Card |
-|---|---|---|---|
-| Admitted ≤ Form 1 in 2023 | 8-4-4 | CATs, End of Term (A–E grades) | Class position, KCSE projection |
-| Admitted Grade 7 in 2024+ | CBE | SBA, Projects, Portfolio (EE/ME/AE/BE) | Competency profile, pathway fit |
+### Backend (`backend/.env`)
 
-The `curriculum_mode` field on each student record drives all downstream behaviour automatically. No manual switching required.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `REDIS_URL` | Yes | Redis connection string |
+| `JWT_SECRET` | Yes | JWT signing secret — minimum 64 characters |
+| `JWT_EXPIRY` | No | Token expiry duration. Default: `8h` |
+| `MPESA_CONSUMER_KEY` | Yes* | Safaricom Daraja consumer key |
+| `MPESA_CONSUMER_SECRET` | Yes* | Safaricom Daraja consumer secret |
+| `MPESA_SHORTCODE` | Yes* | M-Pesa Paybill shortcode |
+| `MPESA_PASSKEY` | Yes* | Lipa Na M-Pesa passkey |
+| `MPESA_CALLBACK_URL` | Yes* | Publicly accessible callback URL |
+| `MPESA_ENVIRONMENT` | No | `sandbox` or `production`. Default: `sandbox` |
+| `AT_API_KEY` | Yes* | Africa's Talking API key |
+| `AT_USERNAME` | Yes* | Africa's Talking username (`sandbox` for testing) |
+| `AT_SENDER_ID` | No | SMS sender ID. Default: `SHULE360` |
+| `AWS_ACCESS_KEY_ID` | Yes* | IAM user access key for S3 |
+| `AWS_SECRET_ACCESS_KEY` | Yes* | IAM user secret key |
+| `AWS_S3_BUCKET` | Yes* | S3 bucket name for portfolio files |
+| `AWS_CLOUDFRONT_DOMAIN` | Yes* | CloudFront distribution domain |
+| `AI_SERVICE_URL` | No | AI service base URL. Default: `http://localhost:8000` |
+| `PORT` | No | API server port. Default: `5000` |
+
+*Required only if the associated feature is enabled.
+
+### Frontend (`frontend/.env`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend API base URL |
+
+### AI Service (`ai-service/.env`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string (read access for feature extraction) |
+| `PORT` | No | Service port. Default: `8000` |
 
 ---
 
-## User Roles
+## 12. Production Deployment
 
-| Role | Access |
-|---|---|
-| Principal / Admin | Everything |
-| Deputy Principal | Academics, attendance, exams, AI dashboard |
-| Teacher | Own subjects' grades, attendance |
-| Class Teacher | Above + full class profiles |
-| Bursar | Full fee module only |
-| Counsellor | Student profiles, pathway guidance, AI risk |
-| Parent / Guardian | Own child: grades, fees, portfolio (view), notices |
+### Minimum server specifications
+- CPU: 4 vCPUs
+- RAM: 8 GB
+- Disk: 100 GB SSD
+- OS: Ubuntu 22.04 LTS
+
+### Steps
+
+```bash
+# 1. Provision server and install dependencies
+apt update && apt upgrade -y
+apt install -y docker.io docker-compose-plugin nginx certbot python3-certbot-nginx
+systemctl enable --now docker
+
+# 2. Clone and configure
+git clone https://github.com/Ray001-sudo/shule360.git /var/www/shule360
+cd /var/www/shule360
+cp backend/.env.example backend/.env
+# Fill in all production values — use strong, randomly generated secrets
+
+# 3. Start services
+docker compose -f docker-compose.prod.yml up -d
+
+# 4. Run migrations
+docker compose exec backend node src/config/migrate.js
+
+# 5. Configure Nginx as reverse proxy and obtain TLS certificates
+certbot --nginx \
+  -d app.yourdomain.com \
+  -d api.yourdomain.com \
+  --non-interactive --agree-tos -m your@email.com
+
+# 6. Lock down the firewall
+ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp
+ufw deny 5000/tcp && ufw deny 8000/tcp
+ufw deny 5432/tcp && ufw deny 6379/tcp
+ufw enable
+```
 
 ---
 
-## Environment Variables
+## 13. License
 
-See `backend/.env.example`, `frontend/.env.example`, and `ai-service/.env.example` for the complete list.
+Proprietary — All rights reserved. © Hexaflow Labs.
+
+Unauthorised copying, distribution, or modification of this software or its documentation is strictly prohibited. For licensing enquiries, contact bensonray25@gmail.com.
 
 ---
 
-## License
-
-Proprietary — PentaFlow Labs Team © 2026
+<div align="center">
+<sub>Built by <a href="https://bensonray.pages.dev">Benson Ray</a> at <strong>Hexaflow Labs</strong> · Nairobi, Kenya</sub>
+</div>
