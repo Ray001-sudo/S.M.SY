@@ -193,7 +193,7 @@ The fastest path to a running system. All services start in the correct order wi
 
 ```bash
 # Step 1 — Clone
-git clone https://github.com/Ray001-sudo/shule360.git
+git clone https://github.com/Ray001-sudo/S.M.SY.git
 cd shule360
 
 # Step 2 — Configure environment files
@@ -425,7 +425,7 @@ apt install -y docker.io docker-compose-plugin nginx certbot python3-certbot-ngi
 systemctl enable --now docker
 
 # 2. Clone and configure
-git clone https://github.com/Ray001-sudo/shule360.git /var/www/shule360
+git clone https://github.com/Ray001-sudo/S.M.SY.git /var/www/shule360
 cd /var/www/shule360
 cp backend/.env.example backend/.env
 # Fill in all production values — use strong, randomly generated secrets
